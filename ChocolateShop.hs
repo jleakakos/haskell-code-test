@@ -38,40 +38,44 @@ type BasketWithWrappers = Map ChocolateType (TotalChocolates, UnredeemedWrappers
 
 data Scenario = Scenario { cash :: Cash, price :: Price, wrappersNeeded :: WrappersNeeded, chocolateType :: ChocolateType } deriving Show
 
-emptyBasket :: Basket
 emptyBasket = fromList $ Prelude.map (\chocolateType -> (chocolateType, 0)) [Milk ..]
+emptyBasketWithWrappers = basketToBasketWithWrappers emptyBasket
 
 purchaseInitialChocolates :: Scenario -> Basket
 purchaseInitialChocolates scenario = insert (chocolateType scenario) totalBought emptyBasket
   where totalBought = cash scenario `div` price scenario
 
-redeemPurchasedChocolates :: Basket -> ChocolateType -> WrappersNeeded -> BasketWithWrappers
-redeemPurchasedChocolates basket chocolateType wrappersNeeded = redeem' (basketToBasketWithWrappers basket) chocolateType wrappersNeeded
-  where totalForType = fromJust $ Data.Map.lookup chocolateType basket
+redeemPurchasedChocolates :: Basket -> WrappersNeeded -> BasketWithWrappers
+redeemPurchasedChocolates basket wrappersNeeded = redeemForAll (basketToBasketWithWrappers basket) wrappersNeeded
 
 basketToBasketWithWrappers :: Basket -> BasketWithWrappers
 basketToBasketWithWrappers basket = fmap (\num -> (num, num)) basket
 
-redeem' :: BasketWithWrappers -> ChocolateType -> WrappersNeeded -> BasketWithWrappers
-redeem' basket chocolateType wrappersNeeded
-  | wrappers < wrappersNeeded = basket
-  | otherwise = redeem' updatedBasket chocolateType wrappersNeeded
-  where (total, wrappers) = fromJust $ Data.Map.lookup chocolateType basket
-        (redeemed, leftOver) = wrappers `divMod` wrappersNeeded
-        updatedBasket = updateBasketWithPromotion basket chocolateType total redeemed (redeemed + leftOver)
+{-redeem' :: BasketWithWrappers -> ChocolateType -> WrappersNeeded -> BasketWithWrappers-}
+{-redeem' basket chocolateType wrappersNeeded-}
+  {-| wrappers < wrappersNeeded = basket-}
+  {-| otherwise = redeem' updatedBasket chocolateType wrappersNeeded-}
+  {-where (total, wrappers) = fromJust $ Data.Map.lookup chocolateType basket-}
+        {-(redeemed, leftOver) = wrappers `divMod` wrappersNeeded-}
+        {-updatedBasket = updateBasketWithPromotion basket chocolateType total redeemed (redeemed + leftOver)-}
+
+redeemForAll :: BasketWithWrappers -> WrappersNeeded -> BasketWithWrappers
+redeemForAll basket wrappersNeeded
+  | all (\(_,wrappers) -> wrappers < wrappersNeeded) listOfRedeemedAndLeftOver = basket
+  | otherwise = redeemForAll updatedBasket wrappersNeeded
+  where listOfTotalsAndWrappers = map (\chocolateType -> fromJust $ Data.Map.lookup chocolateType basket) [Milk ..] 
+        listOfRedeemedAndLeftOver = map (\(_, wrappers) -> wrappers `divMod` wrappersNeeded) listOfTotalsAndWrappers
+        updatedBaskets = map (\(chocolateType,(redeemed, leftOver)) -> updateBasketWithPromotion basket chocolateType redeemed (redeemed + leftOver)) $ zip [Milk ..] listOfRedeemedAndLeftOver
+        updatedBasket = mconcat updatedBaskets
 
 type OriginalTotal = Int
 type ChocolatesRedeemed = Int
-updateBasketWithPromotion :: BasketWithWrappers -> ChocolateType -> OriginalTotal -> ChocolatesRedeemed -> UnredeemedWrappers -> BasketWithWrappers
-updateBasketWithPromotion basket chocolateType total redeemed unredeemed
+updateBasketWithPromotion :: BasketWithWrappers -> ChocolateType -> ChocolatesRedeemed -> UnredeemedWrappers -> BasketWithWrappers
+updateBasketWithPromotion basket chocolateType redeemed unredeemed
   | chocolateType == Milk || chocolateType == White = insert SugarFree (sugarFreeTotal + redeemed, sugarFreeWrappers + redeemed) updatedBasketWithoutPromotion
   | chocolateType == SugarFree = insert Dark (darkTotal + redeemed, darkWrappers + redeemed) updatedBasketWithoutPromotion
   | otherwise = updatedBasketWithoutPromotion
   where (darkTotal, darkWrappers) = fromJust $ Data.Map.lookup Dark basket
         (sugarFreeTotal, sugarFreeWrappers) = fromJust $ Data.Map.lookup SugarFree basket
-        updatedBasketWithoutPromotion = insert chocolateType (total+redeemed, unredeemed) basket
-       
-        
-  {-where basketWithWrappers = Data.Map.map (\numberOfChcolate -> (numberOfChocolates, numberOfChocolate, 0) basket-}
--- Milk | White -> SugarFree
--- SugarFree -> Dark
+        (currentTotal, currentWrappers) = fromJust $ Data.Map.lookup chocolateType basket
+        updatedBasketWithoutPromotion = insert chocolateType (currentTotal+redeemed, unredeemed) basket
