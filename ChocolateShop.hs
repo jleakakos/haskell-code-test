@@ -34,7 +34,7 @@ type Basket = Map ChocolateType Int
 type TotalChocoaltes = Int
 type WrappedChocolate = Int
 type UnredeemedWrappers = Int
-type BasketWithWrappers = Map ChocolateType (TotalChocoaltes, WrappedChocolate, UnredeemedWrappers)
+type BasketWithWrappers = Map ChocolateType (TotalChocoaltes, UnredeemedWrappers)
 
 data Scenario = Scenario { cash :: Cash, price :: Price, wrappersNeeded :: WrappersNeeded, chocolateType :: ChocolateType } deriving Show
 
@@ -52,15 +52,15 @@ redeemPurchasedChocolates basket chocolateType wrappersNeeded = redeem' (basketT
         totalForType = fromJust maybeTotalForType
 
 basketToBasketWithWrappers :: Basket -> BasketWithWrappers
-basketToBasketWithWrappers basket = fmap (\num -> (num, num, 0)) basket
+basketToBasketWithWrappers basket = fmap (\num -> (num, num)) basket
 
 redeem' :: BasketWithWrappers -> ChocolateType -> WrappersNeeded -> BasketWithWrappers
 redeem' basket chocolateType wrappersNeeded
-  | wrapped + wrappers < wrappersNeeded = basket
+  | wrappers < wrappersNeeded = basket
   | otherwise = redeem' updatedBasket chocolateType wrappersNeeded
-  where (total, wrapped, wrappers) = fromJust $ Data.Map.lookup chocolateType basket
-        (redeemed, leftOver) = (wrapped + wrappers) `divMod` wrappersNeeded
-        updatedBasket = insert chocolateType (total + redeemed, redeemed, leftOver) basket
+  where (total, wrappers) = fromJust $ Data.Map.lookup chocolateType basket
+        (redeemed, leftOver) = wrappers `divMod` wrappersNeeded
+        updatedBasket = insert chocolateType (total + redeemed, redeemed + leftOver) basket
        
         
   {-where basketWithWrappers = Data.Map.map (\numberOfChcolate -> (numberOfChocolates, numberOfChocolate, 0) basket-}
