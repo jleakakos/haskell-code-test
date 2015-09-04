@@ -1,5 +1,8 @@
 module Main where
 
+import OrderProcessor
+
 main :: IO ()
 main = do
-  putStrLn "hello world"
+  readInputAndRun
+  
