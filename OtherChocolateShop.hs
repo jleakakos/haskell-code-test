@@ -31,6 +31,7 @@ milkOrder = redeemWrappers (purchaseChocolate 12 2 Milk) 5
 darkOrder = redeemWrappers (purchaseChocolate 12 4 Dark) 4
 sugarFreeOrder = redeemWrappers (purchaseChocolate 6 2 SugarFree) 2
 whiteOrder = redeemWrappers (purchaseChocolate 6 2 White) 2
+superSugarFree = redeemWrappers (purchaseChocolate 100 2 SugarFree) 5
 
 type Cash = Int
 type Price = Int
@@ -53,11 +54,7 @@ redeemWrappers' :: Map ChocolateType (Int, Int) -> WrappersNeeded -> Map Chocola
 redeemWrappers' basket wrappersNeeded
   | all (\(_, unredeemedWrappers) -> unredeemedWrappers < wrappersNeeded) basket = basket
   | otherwise = redeemWrappers' updatedBasket wrappersNeeded
-  where updatedMilkBasket = updateBasket basket wrappersNeeded Milk
-        updatedDarkBasket = updateBasket updatedMilkBasket wrappersNeeded Dark
-        updatedSugarFreeBasket = updateBasket updatedDarkBasket wrappersNeeded SugarFree
-        updatedWhiteBasket = updateBasket updatedSugarFreeBasket wrappersNeeded White
-        updatedBasket = updatedWhiteBasket
+  where updatedBasket = foldl (\b c -> updateBasket b wrappersNeeded c) basket [Milk ..]
 
 updateBasket :: Map ChocolateType (Int, Int) -> WrappersNeeded -> ChocolateType -> Map ChocolateType (Int, Int)
 updateBasket basket wrappersNeeded chocolateType 
