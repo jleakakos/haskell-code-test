@@ -2,7 +2,7 @@
 
 module ChocolateShop where
 
-import Data.Map (elems, foldWithKey, fromList, insert, lookup, map, mapWithKey, Map)
+import Data.Map (elems, foldWithKey, fromList, toList, insert, lookup, map, mapWithKey, Map)
 import Prelude hiding (lookup)
 import Data.Maybe (fromJust)
 import Data.Text hiding (all, foldl, filter)
@@ -20,16 +20,22 @@ data ChocolateType = Milk | Dark | White | SugarFree deriving (Enum, Eq, Ord, Sh
 
 data Order = Order Cash Price WrappersNeeded ChocolateType deriving Show
 
+runOrder :: Order -> Text
+runOrder (Order cash price wrappersNeeded chocolateType) = formattedOrder
+  where output = redeemWrappers (purchaseChocolate cash price chocolateType) wrappersNeeded
+        formattedOrder = intercalate ", " pre
+        pre = Prelude.map (\(c,n) -> ((pack $ show c) `append` " " `append` (pack $ show n))) $ toList output
+
 emptyBasket = fromList $ Prelude.map (\t -> (t, 0)) [Milk ..]
-emptyBasketWithWrappers = fromList $ Prelude.map (\t -> (t, (0,0))) [Milk ..]
 
 purchaseChocolate :: Cash -> Price -> ChocolateType -> Map ChocolateType Int
 purchaseChocolate cash price chocolateType = insert chocolateType total emptyBasket
   where total = cash `div` price
 
 redeemWrappers :: Map ChocolateType Int -> WrappersNeeded -> Map ChocolateType Int
-redeemWrappers basket wrappersNeeded = removedWrappersBasket
-  where removedWrappersBasket = Data.Map.map fst $ redeemWrappers' (Data.Map.map (\v -> (v,v)) basket) wrappersNeeded
+redeemWrappers basket wrappersNeeded = basketWithRemovedWrappers
+  where basketWithRemovedWrappers = Data.Map.map fst basketWithWrappers
+        basketWithWrappers = redeemWrappers' (Data.Map.map (\v -> (v,v)) basket) wrappersNeeded
 
 redeemWrappers' :: Map ChocolateType (Int, Int) -> WrappersNeeded -> Map ChocolateType (Int, Int)
 redeemWrappers' basket wrappersNeeded
