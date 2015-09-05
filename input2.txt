@@ -1,0 +1,6 @@
+price, cash, wrappers needed, type
+
+2, 12, 5, 'milk'
+4, 12, 4, 'dark'
+2, 6,  2, 'sugar free'
+2, 6,  2, 'white'

@@ -20,4 +20,5 @@ executable haskell-code-test
                        text,
                        containers
   other-modules:       ChocolateShop,
-                       OrderProcessor
+                       OrderProcessor,
+                       OrderParser
