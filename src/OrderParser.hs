@@ -1,4 +1,7 @@
-module OrderParser where
+module OrderParser
+( parseInputFile
+, Order
+) where
 
 import Data.Maybe (fromJust)
 
@@ -6,32 +9,40 @@ type Cash = Int
 type Price = Int
 type WrappersNeeded = Int
 type ChocolateType = String
-data Candy = Candy Cash Price WrappersNeeded ChocolateType deriving Show
+data Order = Order Cash Price WrappersNeeded ChocolateType deriving Show
 
--- Read from the file
--- Get the header, skip the newline, get the rest
--- Split the lines and zip those babies up (into a map-like structure)
--- Turn it all into some delicious candy
+-- I chose to use the "map-like" functions that Prelude provides
+-- instead of going with an actual map
+-- e.g. Prelude.lookup  :: Eq a => a -> [(a,b) -> Maybe b]
+--      Data.Map.lookup :: Ord k => k -> Map k a -> Maybe a
+
+-- This is the main function that will be used
+-- Read from the input file
 -- Oh, and it can deal with the header being in any order
-run = do
-  content <- readFile "input.txt"
-  mapM_ print $ parseInputFile content
+parseInputFile :: FilePath -> IO [Order]
+parseInputFile filePath = do
+  content <- readFile filePath
+  return $ parseInputContent content
 
-run2 = do
-  content <- readFile "input2.txt"
-  mapM_ print $ parseInputFile content
+-- Get the header, skip the newline, get the rest
+parseInputContent :: String -> [Order]
+parseInputContent content = orders
+  where orders = map (parseInputLine header) orderLines
+        (header:_:orderLines) = lines content
 
-parseInputFile content = orders
-  where (header:_:orderLines) = lines content
-        splitHeader = splitLine header
-        headerWithValues = map (zip splitHeader . splitLine) orderLines
-        orders = map clean headerWithValues
+-- Split the lines and zip those babies up (into a map-like structure)
+parseInputLine :: String -> String -> Order
+parseInputLine headerLine orderLine = order
+  where order = clean $ zip splitHeaderValues splitOrderValues
+        splitHeaderValues = splitLine headerLine
+        splitOrderValues = splitLine orderLine
 
--- Turn a line from the input file into a Candy
+-- Turn a line from the input file into an Order
 -- This is where some hard-coding lives, since the header
 -- fields aren't able to be encoded statically
 -- Deal with it
-clean order = Candy cash price wrappersNeeded candyType
+clean :: [(ChocolateType, String)] -> Order
+clean order = Order cash price wrappersNeeded candyType
   where cash = read $ fromJust $ lookup "cash" order :: Int
         price = read $ fromJust $ lookup "price" order :: Int
         wrappersNeeded = read $ fromJust $ lookup "wrappers needed" order :: Int
@@ -40,7 +51,8 @@ clean order = Candy cash price wrappersNeeded candyType
 -- Sometimes, you just gotta go for String instead of
 -- Data.Text, and that's when you build your own split
 -- function
-splitLine lineString = foldr foldFunction [""] lineString
+splitLine :: String -> [String]
+splitLine lineString = foldr splitLineFoldFunction [""] lineString
 
 -- Go letter by letter,
 -- concatinating it to the first word
@@ -50,12 +62,21 @@ splitLine lineString = foldr foldFunction [""] lineString
 -- the head of the list
 --
 -- Also, trim (maybe move somewhere else)
-foldFunction :: Char -> [String] -> [String]
-foldFunction = (\nextChar (word:restOfLine) -> if nextChar == ',' then []:(trim word:restOfLine) else ((nextChar:word):restOfLine))
+splitLineFoldFunction :: Char -> [String] -> [String]
+splitLineFoldFunction = (\nextChar (word:restOfLine) -> if nextChar == ',' then []:(trim word:restOfLine) else ((nextChar:word):restOfLine))
 
 -- Trim whitespace and single quotes
 -- Inefficient, what, with all the reversing and dropWhiling
 -- This is pretty much the best/easiest way when you don't
 -- want to dip into Data.Text
+trim :: String -> String
 trim = reverse . dropWhile dropCondition . reverse . dropWhile dropCondition
   where dropCondition = (flip elem) " '"
+
+run = do
+  content <- readFile "input.txt"
+  mapM_ print $ parseInputContent content
+
+run2 = do
+  content <- readFile "input2.txt"
+  mapM_ print $ parseInputContent content
